@@ -1,12 +1,12 @@
 # TradeHub
 
-A location-aware second-hand marketplace for mobile and web. Users sign up, post items for sale with a photo, category, price, contact details and map location, and browse other people's listings sorted by distance, with keyword search and filters.
+A second-hand marketplace app for mobile and web that knows where you are. You sign up, post things you want to sell (with a photo, category, price, contact details and a spot on the map), and browse what other people are selling, sorted by how far away it is. There's keyword search and filters too.
 
-Course project for **2190512 Application Development**: a demo app built to practise the course tech stack. It has no real users and was never run in production.
+This was a course project for **2190512 Application Development**, built to practise the course tech stack. It's a demo, so there are no real users and it never ran in production.
 
 ## Screenshots
 
-Screenshots were captured from the real Expo web build running against the real Flask backend. The backend used an in-memory MongoDB substitute (`mongomock`) seeded with **demo data** (fake users and items, no photos), 390x844 viewport.
+These come from the Expo web build running against the Flask backend. For the screenshots the backend used `mongomock` (an in-memory MongoDB stand-in) filled with **demo data**: fake users and items, no photos. Viewport is 390x844.
 
 | Login / Sign up | Home (nearby listings) | Search | Filter |
 |---|---|---|---|
@@ -18,28 +18,28 @@ Screenshots were captured from the real Expo web build running against the real 
 
 ## Features
 
-- Sign up and log in with username and password; the logged-in username is remembered on the device (AsyncStorage).
-- Home feed of all listings except the user's own, with the distance from the user's location shown in km.
-- Current location obtained from the browser geolocation API, or chosen manually on a map screen; saved as the default location.
-- Sorting: by distance, price low to high, price high to low.
-- Filtering: price range, maximum distance (km), multiple categories (18 predefined categories).
-- Keyword search (debounced 300 ms) across name, detail, category, contact details and location name (case-insensitive, server-side regex).
-- Add, edit and delete your own listings; the server only modifies a listing if the `user` field matches.
-- Product photo picked from the device library and uploaded to Firebase Storage; the download URL is stored in the listing.
-- Location picker map: Google Maps JavaScript API on web, `react-native-maps` on native (platform-specific components).
-- Client-side form validation (required fields, positive numeric price, location required).
+- Sign up and log in with a username and password. The app remembers who's logged in on the device (AsyncStorage).
+- A home feed with everyone's listings except your own, showing how many km away each one is.
+- Your location comes from the browser's geolocation, or you can pick it yourself on a map. It's saved as your default.
+- Sort by distance, or by price (low to high, high to low).
+- Filter by price range, max distance (km) and one or more of 18 categories.
+- Keyword search (debounced by 300 ms) over the name, details, category, contact details and location name. It's case-insensitive and runs on the server.
+- Add, edit and delete your own listings. The server only changes a listing if it belongs to you.
+- Pick a photo from your device and it gets uploaded to Firebase Storage. The listing keeps the download URL.
+- Location picker map: Google Maps JavaScript API on web, `react-native-maps` on native.
+- Form checks before submitting (required fields, price has to be a positive number, location is required).
 
 ## Tech stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | Expo SDK 54, React Native 0.81, React 19.1, TypeScript 5.9, expo-router 6 (file-based routing, typed routes), React Compiler enabled, react-native-web |
-| UI libraries | lucide-react-native icons, expo-image, @react-navigation/native theme, custom palette in `constants/theme.ts` |
-| Device/native | expo-image-picker, react-native-maps, AsyncStorage, react-native-reanimated, gesture-handler |
+| Frontend | Expo SDK 54, React Native 0.81, React 19.1, TypeScript 5.9, expo-router 6 (file-based routing, typed routes), React Compiler, react-native-web |
+| UI | lucide-react-native icons, expo-image, @react-navigation/native theme, custom palette in `constants/theme.ts` |
+| Device / native | expo-image-picker, react-native-maps, AsyncStorage, react-native-reanimated, gesture-handler |
 | Backend | Python, Flask, Flask-CORS, PyMongo, python-dotenv |
-| Database | MongoDB (database `Tradehub`, 2 collections), expected via a MongoDB Atlas URI |
-| Cloud storage | Firebase Storage (image upload, `firebase` JS SDK 12) |
-| Maps | Google Maps JavaScript API (web), Google Maps via react-native-maps (native) |
+| Database | MongoDB (database `Tradehub`, 2 collections), connected through a MongoDB Atlas URI |
+| File storage | Firebase Storage for images (`firebase` JS SDK 12) |
+| Maps | Google Maps JavaScript API (web), Google Maps through react-native-maps (native) |
 
 ## Architecture
 
@@ -60,29 +60,31 @@ flowchart LR
 
 ## How it works
 
-1. **Auth**: the client POSTs `{username, password}` to `/login` or `/signUp`. On success the client stores the username in React context and AsyncStorage and navigates to `/home`. There are no tokens or sessions; the username is sent in later request bodies (`user`, `username`) to identify the owner.
-2. **Browsing**: `home.tsx` calls `POST /getAllProducts` with an optional keyword (debounced 300 ms). Distance (haversine formula, Earth radius 6371 km), price filtering, category filtering, exclusion of own listings and sorting are all done on the client. Listings without valid coordinates get infinite distance.
-3. **Posting**: `addNewProduct.tsx` validates the form, uploads the picked image to Firebase Storage (resumable upload, 30 s timeout, path `products/<username>/<timestamp>.jpg`), then calls `POST /addProduct` (or `/updateProduct` when editing). The server validates the category against a fixed set.
-4. **Ownership**: update and delete queries match on both `_id` and `user`, so a user cannot change someone else's listing via these endpoints (see Known limitations regarding authentication).
-5. **Location**: the home screen requests browser geolocation once; if unavailable or denied, it prompts the user to choose a location on the map screen. The result is passed back via route params and persisted.
+1. **Logging in.** The app sends `{username, password}` to `/login` or `/signUp`. If it works, the username is kept in React context and AsyncStorage and you land on `/home`. There are no tokens or sessions. Later requests just include the username (`user`, `username`) so the server knows who you are.
+2. **Browsing.** `home.tsx` calls `POST /getAllProducts`, with a keyword if you typed one. Everything else happens on the phone: distance (haversine formula, Earth radius 6371 km), price and category filters, hiding your own listings, and sorting. Listings without proper coordinates get pushed to the end with infinite distance.
+3. **Posting.** `addNewProduct.tsx` checks the form, uploads the photo to Firebase Storage (resumable upload, 30 s timeout, saved under `products/<username>/<timestamp>.jpg`), and then calls `POST /addProduct`, or `/updateProduct` if you're editing. The server checks the category against a fixed list.
+4. **Ownership.** Update and delete only match a listing when both `_id` and `user` line up, so you can't change someone else's listing through these endpoints. (See the limitations below about how weak the auth is, though.)
+5. **Location.** The home screen asks for browser geolocation once. If that fails or you say no, it asks you to pick a spot on the map. The result comes back through route params and gets saved.
 
 ### API endpoints (Flask, port 5000)
 
-All endpoints except `/` are `POST` with a JSON body.
+Everything except `/` is a `POST` with a JSON body.
 
-| Endpoint | Purpose | Key responses |
+| Endpoint | What it does | Responses |
 |---|---|---|
 | `GET /` | Health check (returns "hello") | 200 |
-| `POST /login` | Check username/password | 200, 404 user not found, 401 wrong password |
-| `POST /signUp` | Create user if username free | 200, 401 username taken |
+| `POST /login` | Check username and password | 200, 404 user not found, 401 wrong password |
+| `POST /signUp` | Create a user if the name is free | 200, 401 username taken |
 | `POST /getUserInfo` | Return `_id` and username for a user | 200, 404 |
-| `POST /getUserProducts` | Listings of one user | 200 |
+| `POST /getUserProducts` | One user's listings | 200 |
 | `POST /getAllProducts` | All listings, optional keyword search | 200 |
-| `POST /addProduct` | Create listing (category validated) | 200, 400 invalid category |
-| `POST /updateProduct` | Update own listing | 200, 400, 404 |
-| `POST /deleteProduct` | Delete own listing | 200, 404 |
+| `POST /addProduct` | Create a listing (category checked) | 200, 400 invalid category |
+| `POST /updateProduct` | Update your own listing | 200, 400, 404 |
+| `POST /deleteProduct` | Delete your own listing | 200, 404 |
 
-### Data model (MongoDB, no enforced schema; shape inferred from `app.py` and `components/interface.ts`)
+### Data model
+
+MongoDB doesn't enforce a schema here. This is the shape the code in `app.py` and `components/interface.ts` uses:
 
 ```mermaid
 erDiagram
@@ -108,48 +110,48 @@ erDiagram
   }
 ```
 
-The relationship is by convention only (`productInfo.user` holds the username); MongoDB does not enforce it. Price and coordinates are stored as strings.
+The link between the two is just a convention: `productInfo.user` holds the username. Price and coordinates are stored as strings.
 
 ### Screens
 
-| Route | File | Purpose |
+| Route | File | What it's for |
 |---|---|---|
-| `/` | `app/index.tsx` | Entry, redirects to login |
+| `/` | `app/index.tsx` | Entry point, sends you to login |
 | `/login` | `app/login.tsx` | Log in / sign up |
 | `/home` | `app/home.tsx` | Listing feed, search, sort, filter, location |
 | `/productDetails` | `app/productDetails.tsx` | Listing details (modal) |
-| `/userInfo` | `app/userInfo.tsx` | Profile, own listings, delete, logout (modal) |
-| `/addNewProduct` | `app/addNewProduct.tsx` | Add / edit listing (modal) |
-| `/mapScreen` | `app/mapScreen.tsx` | Pick location on a map (modal) |
+| `/userInfo` | `app/userInfo.tsx` | Profile, your listings, delete, logout (modal) |
+| `/addNewProduct` | `app/addNewProduct.tsx` | Add or edit a listing (modal) |
+| `/mapScreen` | `app/mapScreen.tsx` | Pick a location on the map (modal) |
 
-## Results / outputs
+## Current state
 
-- The Expo web build (`npx expo export --platform web`) compiled successfully and was run end to end against the Flask API with seeded demo data: login, feed with distances (e.g. 0.0 km, 3.5 km, 3.7 km for demo items), keyword search, filter sheet, product details, profile, add form. See screenshots above.
-- Not exercised in the screenshots: Firebase image upload and Google Maps (they require real keys), and native iOS/Android builds.
-- No automated tests exist in the repository.
+- The Expo web build (`npx expo export --platform web`) builds fine and works end to end against the Flask API with demo data: login, the feed with distances (for example 0.0 km, 3.5 km, 3.7 km), search, filters, product details, profile and the add form. That's what the screenshots show.
+- Firebase image upload and Google Maps need real keys, so they aren't in the screenshots. Native iOS/Android builds weren't tried for them either.
+- There are no automated tests yet.
 
 ## How to run
 
-Prerequisites: Node.js, Python 3, a MongoDB instance (e.g. Atlas), optionally Firebase project and Google Maps API key.
+You'll need Node.js, Python 3 and a MongoDB instance (Atlas works). A Firebase project and a Google Maps API key are optional.
 
 ```bash
 git clone https://github.com/kookithub/2190512_Application_Development_TradeHub.git
 cd 2190512_Application_Development_TradeHub
 
-# 1. Configure secrets (never commit .env)
-cp .env.example .env     # fill MONGODB_URI, GOOGLE_MAPS_API_KEY, EXPO_PUBLIC_FIREBASE_* values
+# 1. Set up your keys (don't commit .env)
+cp .env.example .env     # fill in MONGODB_URI, GOOGLE_MAPS_API_KEY, EXPO_PUBLIC_FIREBASE_* values
 
 # 2. Backend
 pip install flask flask-cors pymongo python-dotenv
 python app.py            # http://127.0.0.1:5000
 
-# 3. Frontend (second terminal)
+# 3. Frontend (in a second terminal)
 npm install
-npm install react-native-svg   # required by lucide-react-native but not listed in package.json
+npm install react-native-svg   # lucide-react-native needs it, but it's missing from package.json
 npm run web              # or: npm run android / npm run ios
 ```
 
-The API base URL is hard-coded in `components/api.ts` (`http://127.0.0.1:5000`, or `http://10.0.2.2:5000` on the Android emulator). A physical phone needs this changed to the computer's LAN address.
+The API address is hard-coded in `components/api.ts` (`http://127.0.0.1:5000`, or `http://10.0.2.2:5000` on the Android emulator). If you run it on a real phone, change it to your computer's LAN address.
 
 ## Repository structure
 
@@ -157,32 +159,17 @@ The API base URL is hard-coded in `components/api.ts` (`http://127.0.0.1:5000`, 
 app.py                 Flask backend (9 routes, 2 MongoDB collections)
 app/                   expo-router screens + root layout/context
 components/            API URL, Firebase config, TS interfaces, map components (.native/.web), themed text
-constants/             categories list, theme/palette
+constants/             category list, theme/palette
 hooks/                 color-scheme hooks
 assets/images/         app icons and splash
-app.json, app.config.js  Expo config; app.config.js injects the Maps key from env
-.env.example           Placeholder environment variables
+app.json, app.config.js  Expo config; app.config.js pulls the Maps key from env
+.env.example           placeholder environment variables
 docs/images/           README screenshots
 ```
 
-## Known limitations (verified in code)
+## Known limitations
 
-- Passwords are stored and compared in plain text (`app.py` imports `check_password_hash` but does not use it); there are no tokens, so the API trusts the username in the request body.
-- Prices, dates and coordinates are stored as strings; filtering and sorting happen on the client over the full listing set (no pagination).
-- `react-native-svg` (needed by `lucide-react-native`) is not declared in `package.json`.
+- Passwords are stored and compared as plain text (`app.py` imports `check_password_hash` but never uses it). There are no tokens either, so the API just trusts whatever username comes in the request.
+- Prices, dates and coordinates are strings, and filtering and sorting happen on the phone over the whole list (no pagination).
+- `react-native-svg` is needed by `lucide-react-native` but isn't in `package.json`.
 - `app.run(debug=True, host="0.0.0.0")` is hard-coded.
-
-## Project Facts (for resume)
-
-Plain facts only; verified from the code.
-
-- **Course**: 2190512 Application Development.
-- **Purpose**: course demo app to practise the tech stack; no production users.
-- **Languages / frameworks / libraries**: TypeScript/TSX, Python; Expo 54, React Native 0.81, React 19.1, expo-router 6, react-native-web, react-native-maps, lucide-react-native, expo-image, expo-image-picker, AsyncStorage, Firebase JS SDK 12 (Storage only), date-fns, Flask, Flask-CORS, PyMongo, python-dotenv, MongoDB, Google Maps API.
-- **Size**: about 2,850 lines TypeScript/TSX (app, components, constants, hooks) plus 240 lines Python (`app.py`); about 3,100 lines total; 6 screens plus 1 entry redirect; 8 API endpoints plus 1 health route; 2 MongoDB collections; 18 product categories; 41 tracked files.
-- **Key features**: see Features above (geo-distance sorting, filters, search, image upload, map picker, CRUD on own listings, cross-platform web/iOS/Android code).
-- **Auth method**: username/password check against MongoDB via `/login` and `/signUp`; passwords stored in plain text; no token/session; username persisted client-side in AsyncStorage.
-- **Algorithms / design patterns**: haversine great-circle distance (client); debounced search; React Context for global state; platform-specific module resolution (`.native.tsx` / `.web.tsx`) for the map; REST-style JSON API; server-side category whitelist; ownership check by matching `_id` + `user` on update/delete; escaped, case-insensitive regex search (`re.escape`).
-- **Measurable numbers**: only the size counts above are verified. Users: none (no real users).
-- **Hard problems and how solved (evidence in code)**: web vs native map support solved with separate `LocationMap` implementations (Google Maps JS API loaded dynamically on web); image upload from a local URI solved by converting to a Blob via XHR and using Firebase resumable upload with a 30 s timeout; secrets removed from source via `.env`, `app.config.js` and `EXPO_PUBLIC_*` variables.
-- **Outcome**: working prototype verified by running the web build against the backend (screenshots). Working demo app (no production users).
