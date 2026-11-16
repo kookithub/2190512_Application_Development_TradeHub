@@ -2,7 +2,7 @@
 
 A second-hand marketplace app for mobile and web that knows where you are. You sign up, post things you want to sell (with a photo, category, price, contact details and a spot on the map), and browse what other people are selling, sorted by how far away it is. There's keyword search and filters too.
 
-This was a course project for **2190512 Application Development**, built to practise the course tech stack. It's a demo, so there are no real users and it never ran in production.
+This was a team course project for **2190512 Application Development**, built to practise the course tech stack. We worked on all parts of it together. It's a demo, so there are no real users and it never ran in production.
 
 ## Screenshots
 
