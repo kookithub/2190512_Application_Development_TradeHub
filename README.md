@@ -174,17 +174,15 @@ docs/images/           README screenshots
 
 ## Project Facts (for resume)
 
-Plain facts only; verified from the code unless marked.
+Plain facts only; verified from the code.
 
 - **Course**: 2190512 Application Development.
 - **Purpose**: course demo app to practise the tech stack; no production users.
-- **Solo or team**: TODO: confirm
-- **My contributions**: TODO: confirm. The git history is a single "Initial commit" by kookithub, so it cannot separate individual contributions.
 - **Languages / frameworks / libraries**: TypeScript/TSX, Python; Expo 54, React Native 0.81, React 19.1, expo-router 6, react-native-web, react-native-maps, lucide-react-native, expo-image, expo-image-picker, AsyncStorage, Firebase JS SDK 12 (Storage only), date-fns, Flask, Flask-CORS, PyMongo, python-dotenv, MongoDB, Google Maps API.
 - **Size**: about 2,850 lines TypeScript/TSX (app, components, constants, hooks) plus 240 lines Python (`app.py`); about 3,100 lines total; 6 screens plus 1 entry redirect; 8 API endpoints plus 1 health route; 2 MongoDB collections; 18 product categories; 41 tracked files.
 - **Key features**: see Features above (geo-distance sorting, filters, search, image upload, map picker, CRUD on own listings, cross-platform web/iOS/Android code).
 - **Auth method**: username/password check against MongoDB via `/login` and `/signUp`; passwords stored in plain text; no token/session; username persisted client-side in AsyncStorage.
 - **Algorithms / design patterns**: haversine great-circle distance (client); debounced search; React Context for global state; platform-specific module resolution (`.native.tsx` / `.web.tsx`) for the map; REST-style JSON API; server-side category whitelist; ownership check by matching `_id` + `user` on update/delete; escaped, case-insensitive regex search (`re.escape`).
-- **Measurable numbers**: only the size counts above are verified. Users: none (no real users). Listings, performance, load, test coverage, response times: TODO: confirm (none recorded in the repo).
-- **Hard problems and how solved (evidence in code)**: web vs native map support solved with separate `LocationMap` implementations (Google Maps JS API loaded dynamically on web); image upload from a local URI solved by converting to a Blob via XHR and using Firebase resumable upload with a 30 s timeout; secrets removed from source via `.env`, `app.config.js` and `EXPO_PUBLIC_*` variables. Other challenges faced: TODO: confirm
-- **Outcome**: working prototype verified by running the web build against the backend (screenshots). Working demo app (no production users). Deployment, grade, demo/presentation: TODO: confirm
+- **Measurable numbers**: only the size counts above are verified. Users: none (no real users).
+- **Hard problems and how solved (evidence in code)**: web vs native map support solved with separate `LocationMap` implementations (Google Maps JS API loaded dynamically on web); image upload from a local URI solved by converting to a Blob via XHR and using Firebase resumable upload with a 30 s timeout; secrets removed from source via `.env`, `app.config.js` and `EXPO_PUBLIC_*` variables.
+- **Outcome**: working prototype verified by running the web build against the backend (screenshots). Working demo app (no production users).
